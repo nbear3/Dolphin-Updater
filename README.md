@@ -5,6 +5,7 @@ After setting up, select which folder you keep dolphin in using the folder butto
 
 Make sure you run as administrator, and have 7zip installed.
 
+[Imgur](http://i.imgur.com/uEBMPwl.png)
 
 Dolphin website:
 https://dolphin-emu.org/
