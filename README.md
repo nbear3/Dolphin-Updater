@@ -14,3 +14,5 @@ https://dolphin-emu.org/
 
 7zip is now packaged with this program:
 http://www.7-zip.org/
+
+Source code has been compiled using PyInstaller and InnoSetup 5
