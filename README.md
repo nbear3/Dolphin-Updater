@@ -1,7 +1,7 @@
 # Dolphin-Updater
 Update to the newest version of Dolphin Emulator with a click of a button!
 
-After setting up, select which folder you keep dolphin in using the folder button, then click the download button to install the newest version. **Make sure you run as administrator, and have 7zip installed.**
+After setting up, select which folder you keep dolphin in using the folder button, then click the download button to install the newest version. **Make sure you run as administrator.** 7zip is now packaged with this program.
 
 Here's what the application will look like:
 
