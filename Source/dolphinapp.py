@@ -317,13 +317,13 @@ class DownloadThread(QThread):
 
 
 
-            if not os.path.isdir('C:/Program Files/7-Zip'):
+            if not os.path.isfile('res/7z.exe'):
                 self.error.emit('Update failed: Please install 7-Zip')
                 self.status.emit('Extraction Failed')
                 return
 
             os.rename(self.dir, os.path.join(os.path.dirname(self.dir), 'Dolphin-x64'))
-            cmd = ['C:\\Program Files\\7-Zip\\7z', 'x', '-o%s' % path, '-y', '--', file_path]
+            cmd = ['res\\7z', 'x', '-o%s' % path, '-y', '--', file_path]
             starti = subprocess.STARTUPINFO()
             starti.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             subprocess.call(cmd, startupinfo=starti,
