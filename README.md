@@ -1,5 +1,6 @@
 # Dolphin-Updater
-Update to the newest version of Dolphin Emulator with a click of a button! Compatible with dev builds from Dolphin 5.0 and up!
+Update to the newest version of Dolphin Emulator with a click of a button!
+Now Compatible with dev builds from Dolphin 5.0 and up!
 
 After setting up, select which folder you keep dolphin in using the folder button, then click the download button to install the newest version. **Make sure you run as administrator.** 
 
