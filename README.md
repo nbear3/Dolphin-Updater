@@ -21,6 +21,10 @@ You can also do something like this:
 DolphinCmd -i                               (provide information about your installation)
 </code></pre>
 
+This should also allow you to update dolphin with Windows Task Scheduler
+
+<br />
+<br />
 Dolphin website:
 https://dolphin-emu.org/
 
