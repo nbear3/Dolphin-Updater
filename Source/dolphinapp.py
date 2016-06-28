@@ -1,7 +1,7 @@
+import os
 import pickle
 import subprocess
 import sys
-import os
 import traceback
 import urllib
 import urllib.request
@@ -12,14 +12,19 @@ from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, qApp, QMessageBo
     QLabel, QLineEdit, QFileDialog, QDesktopWidget
 from bs4 import BeautifulSoup
 
+
 class DolphinUpdate(QMainWindow):
 
     APP_TITLE = 'DolphinUpdate'
+    DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
+    USER_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/user.data')
 
     def __init__(self):
 
         super().__init__()
         sys.excepthook = self._displayError
+
+        print(self.USER_DATA_PATH)
 
         self.statusBar = self.statusBar()
         self.check = QPixmap("res/check.png")
@@ -82,12 +87,11 @@ class DolphinUpdate(QMainWindow):
         self.grid.setVerticalSpacing(50)
         self.grid.addWidget(self.dirstatus, 0, 0, 2, 1)
         self.grid.addWidget(dolphinlbl, 0, 2, 2, 1)
-        self.grid.addWidget(self.dolphindir,0, 3, 2, 1)
+        self.grid.addWidget(self.dolphindir, 0, 3, 2, 1)
 
         self.grid.addWidget(self.versionstatus, 1, 0, 2, 1)
         self.grid.addWidget(versionlbl, 1, 2, 2, 1)
         self.grid.addWidget(self.version, 1, 3, 2, 1)
-
 
         self.grid.addWidget(self.currentStatus, 2, 0, 2, 1)
         self.grid.addWidget(currentlbl, 2, 2, 2, 1)
@@ -141,7 +145,7 @@ class DolphinUpdate(QMainWindow):
     def updateVersion(self, message):
         if message == 'finished':
             self.versionstatus.setPixmap(self.check)
-            with open('tmp/data.data', 'wb') as file:
+            with open(self.USER_DATA_PATH, 'wb') as file:
                 data = {'path': self.dolphindir.text(), 'version': self.version.text()}
                 pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -173,7 +177,7 @@ class DolphinUpdate(QMainWindow):
 
     def loadData(self):
         """initialize the dolphin path"""
-        text_path = 'tmp/data.data'
+        text_path = self.USER_DATA_PATH
         if os.path.isfile(text_path):
             # Load data (deserialize)
             try:
@@ -201,7 +205,7 @@ class DolphinUpdate(QMainWindow):
         if reply == QMessageBox.Yes:
             self.version.setText('Installation Status Unknown')
             self.versionstatus.setPixmap(self.cancel)
-            with open('tmp/data.data', 'wb') as file:
+            with open(self.USER_DATA_PATH, 'wb') as file:
                 data = {'path': self.dolphindir.text(), 'version': ''}
                 pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -224,11 +228,11 @@ class DolphinUpdate(QMainWindow):
             text = data.decode('utf-8')
             soup = BeautifulSoup(text, "html.parser")
             try:
-                link = soup.find_all('a', {"class":'btn always-ltr btn-info win'}, limit=1, href=True)[0]['href']
+                link = soup.find_all('a', {"class": 'btn always-ltr btn-info win'}, limit=1, href=True)[0]['href']
                 self.current.setText(os.path.basename(link))
             except:
                 QMessageBox.warning(self, 'Uh-oh', 'Newest version not dected, please contact '
-                                                              'the developer.', QMessageBox.Ok)
+                                                   'the developer.', QMessageBox.Ok)
         except Exception as error:
             QMessageBox.warning(self, 'Uh-oh', error, QMessageBox.Ok)
 
@@ -244,24 +248,29 @@ class DolphinUpdate(QMainWindow):
                 version = ''
 
             data = {'path': folder, 'version': version}
-            with open('tmp/data.data', 'wb') as file:
+            with open(self.USER_DATA_PATH, 'wb') as file:
                 pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
 
     def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Exit', "Are you sure to quit?", QMessageBox.Yes |
-                                     QMessageBox.No, QMessageBox.No)
+        if self.downloadThread.isRunning() or self.updateThread.isRunning():
+            reply = QMessageBox.question(self, 'Exit', "Are you sure to quit?", QMessageBox.Yes |
+                                         QMessageBox.No, QMessageBox.No)
 
-        if reply == QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
+            if reply == QMessageBox.No:
+                event.ignore()
+            else:
+                self.downloadThread.wait()
+                self.updateThread.wait()
+
+        event.accept()
+
 
 def center(w):
-
     qr = w.frameGeometry()
     cp = QDesktopWidget().availableGeometry().center()
     qr.moveCenter(cp)
     w.move(qr.topLeft())
+
 
 class thread(QThread):
     finished = pyqtSignal(str)
@@ -275,8 +284,9 @@ class thread(QThread):
         self.wait()
 
     def run(self, *args):
-        self.func()
+        self.func(*args)
         self.finished.emit("Finished")
+
 
 class DownloadThread(QThread):
     status = pyqtSignal(str)
@@ -295,27 +305,26 @@ class DownloadThread(QThread):
         self.dir = dir
 
     def run(self):
-
+        """run thread task"""
         try:
             url = 'https://dolphin-emu.org/download/'
             response = urllib.request.urlopen(url)
             data = response.read()
             text = data.decode('utf-8')
             soup = BeautifulSoup(text, "html.parser")
-            try:
-                link = soup.find_all('a', {"class":'btn always-ltr btn-info win'}, limit=1, href=True)[0]['href']
-            except:
-                self.error.emit('Newest version not detected, please contact the developer.')
-                return
+            link = soup.find_all('a', {"class": 'btn always-ltr btn-info win'}, limit=1, href=True)[0]['href']
+        except:
+            self.error.emit('Newest version not detected, please check your internet connection.')
+            return
 
-            file_name = os.path.basename(link)
-            file_path = os.path.join(os.path.dirname(sys.argv[0]), file_name)
+        file_name = os.path.basename(link)
+        file_path = os.path.join(DolphinUpdate.DOWNLOAD_PATH, file_name)
+
+        try:
             self.status.emit('Downloading...')
             urllib.request.urlretrieve(link, file_path)
             self.status.emit('Downloaded. Extracting...')
             path = os.path.dirname(self.dir)
-
-
 
             if not os.path.isfile('res/7z.exe'):
                 self.error.emit('Update failed: Please install 7-Zip')
@@ -327,9 +336,9 @@ class DownloadThread(QThread):
             starti = subprocess.STARTUPINFO()
             starti.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             subprocess.call(cmd, startupinfo=starti,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT,
-                                    stdin=subprocess.PIPE)
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            stdin=subprocess.PIPE)
 
             self.status.emit(file_name)
             self.status.emit('finished')
@@ -338,9 +347,8 @@ class DownloadThread(QThread):
             self.error.emit('Update Failed. %s' % error)
             self.status.emit('Update Failed.')
         finally:
-            file = os.path.join(os.path.dirname(sys.argv[0]), file_name)
-            if os.path.isfile(file):
-                os.remove(file)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
             if os.path.isdir(os.path.join(os.path.dirname(self.dir), 'Dolphin-x64')):
                 os.rename(os.path.join(os.path.dirname(self.dir), 'Dolphin-x64'), self.dir)
 
@@ -349,4 +357,3 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = DolphinUpdate()
     sys.exit(app.exec_())
-
