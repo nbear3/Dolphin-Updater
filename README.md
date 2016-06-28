@@ -21,7 +21,9 @@ You can also do something like this:
 DolphinCmd -i                               (provide information about your installation)
 </code></pre>
 
-This should also allow you to update dolphin with Windows Task Scheduler
+This should also allow you to update dolphin with Windows Task Scheduler.
+
+**Just make sure you add the app folder to scheduler's "Start In" parameter or downloading will fail<br/> eg: <code> Start In (optional): C:\Program Files(x86)\DolphinUpdate</code>**
 
 <br />
 <br />
