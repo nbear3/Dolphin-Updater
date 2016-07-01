@@ -1,4 +1,4 @@
-"""script to notify when changes are made in an ftp server"""
+"""command line for dolphin update"""
 
 #
 # Imports
