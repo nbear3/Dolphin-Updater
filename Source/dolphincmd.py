@@ -88,12 +88,12 @@ class DolphinCmd:
 
             path = os.path.dirname(dir)
 
-            if not os.path.isfile('res/7z.exe'):
+            if not os.path.isfile('res/7za.exe'):
                 print('Update failed: Please install 7-Zip')
                 return
 
             os.rename(dir, os.path.join(os.path.dirname(dir), 'Dolphin-x64'))
-            cmd = ['res\\7z', 'x', '-o%s' % path, '-y', '--', file_path]
+            cmd = ['res\\7za', 'x', '-o%s' % path, '-y', '--', file_path]
             starti = subprocess.STARTUPINFO()
             starti.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             subprocess.call(cmd, startupinfo=starti,
