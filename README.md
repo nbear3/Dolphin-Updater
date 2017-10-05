@@ -9,7 +9,7 @@ After setting up, select which folder you keep dolphin in using the folder butto
 
 Here's what the application will look like:
 
-![app_example](https://cloud.githubusercontent.com/assets/18427811/14639567/9c184a76-063d-11e6-841e-a6882d8048be.PNG)
+![unbenannt](https://user-images.githubusercontent.com/14855001/31257385-953a9cea-aa38-11e7-9648-6ede9ae2cd49.PNG)
 
 Command Line Usage Example:
 <pre><code>"C:\Program Files (x86)\DolphinUpdate\DolphinCmd" --help     (list all command line arguments)
