@@ -9,7 +9,7 @@ import urllib.request
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, qApp, QMessageBox, QGridLayout, QWidget, \
-    QLabel, QLineEdit, QFileDialog, QDesktopWidget
+    QLabel, QLineEdit, QFileDialog, QDesktopWidget, QTextBrowser 
 from bs4 import BeautifulSoup
 
 
@@ -34,7 +34,7 @@ class DolphinUpdate(QMainWindow):
         self.initUI()
         self.loadData()
 
-        self.setGeometry(500, 500, 500, 300)
+        self.setGeometry(500, 500, 500, 450)
         center(self)
         self.setWindowTitle(self.APP_TITLE)
         self.setWindowIcon(QIcon('res/rabbit.png'))
@@ -57,6 +57,7 @@ class DolphinUpdate(QMainWindow):
         dolphinlbl = QLabel('Dolphin Directory:')
         versionlbl = QLabel('Your Version:')
         currentlbl = QLabel('Current Version:')
+        changeloglbl = QLabel('Changelog:')
 
         self.dolphindir = QLineEdit(main)
         self.dolphindir.setPlaceholderText("Please Select a Dolphin Directory")
@@ -72,7 +73,12 @@ class DolphinUpdate(QMainWindow):
         self.current.setPlaceholderText("Loading Current Version...")
         self.current.setEnabled(False)
         self.current.setStyleSheet("QWidget {color: rgb(0, 0, 0); border:1px solid black; background-color:white;}")
-
+		
+        self.changelog = QTextBrowser(main)
+        self.changelog.setPlaceholderText("Loading Changelog...")
+        self.changelog.setReadOnly(True)
+        self.changelog.setStyleSheet("QWidget {color: rgb(0, 0, 0); border:1px solid black; background-color:white;}")
+        
         self.grid = QGridLayout()
         main.setLayout(self.grid)
 
@@ -96,6 +102,12 @@ class DolphinUpdate(QMainWindow):
         self.grid.addWidget(self.currentStatus, 2, 0, 2, 1)
         self.grid.addWidget(currentlbl, 2, 2, 2, 1)
         self.grid.addWidget(self.current, 2, 3, 2, 1)
+        
+        self.grid.setVerticalSpacing(50)
+        self.grid.addWidget(changeloglbl, 3, 0, 2, 1)
+        self.grid.addWidget(self.changelog, 4, 0, 2, 5)
+
+        
         self.grid.setRowStretch(5, 1)
 
     def initWindow(self):
@@ -107,6 +119,8 @@ class DolphinUpdate(QMainWindow):
 
         self.updateThread = thread(self._retrieveCurrent)
         self.updateThread.finished.connect(self.retrieveCurrentFinished)
+        self.updateThread.changelogtext.connect(self.updateChangelog)
+        
         self.updateThread.start()
 
         self.downloadThread = DownloadThread()
@@ -151,6 +165,9 @@ class DolphinUpdate(QMainWindow):
 
         else:
             self.version.setText(message)
+            
+    def updateChangelog(self, message):
+            self.changelog.setText(message)
 
     def downloadNew(self):
         dir = self.dolphindir.text()
@@ -221,6 +238,7 @@ class DolphinUpdate(QMainWindow):
             self.versionstatus.setPixmap(self.cancel)
 
     def _retrieveCurrent(self):
+        result = {}
         try:
             url = 'https://dolphin-emu.org/download/'
             response = urllib.request.urlopen(url)
@@ -231,18 +249,39 @@ class DolphinUpdate(QMainWindow):
                 link = soup.find_all('a', {"class": 'btn always-ltr btn-info win'}, limit=1, href=True)[0]['href']
                 self.current.setText(os.path.basename(link))
             except:
-                QMessageBox.warning(self, 'Uh-oh', 'Newest version not dected, please contact '
+                QMessageBox.warning(self, 'Uh-oh', 'Newest version not detected, please contact '
+                                                   'the developer.', QMessageBox.Ok)
+                
+            
+                
+            try:
+                text = ""
+                
+                sections = soup.find('table', {"class": 'versions-list dev-versions'})
+                for section in sections.find_all('tr',{"class": 'infos'}):
+                    version = section.find("td",{"class": "version"}).find("a").get_text()
+                    change = section.find("td",{"class": "description"}).get_text()
+                    text = text  + version + "\n" + change + "\n\n"
+                
+                result["changelog"] = text
+                
+
+            
+            except:
+                QMessageBox.warning(self, 'Uh-oh', 'Changelog not detected, please contact '
                                                    'the developer.', QMessageBox.Ok)
         except Exception as error:
             QMessageBox.warning(self, 'Uh-oh', error, QMessageBox.Ok)
-
+            
+        return result
+    
     def selectDolphinFolder(self):
         folder = str(QFileDialog.getExistingDirectory(self, 'Select Dolphin Directory'))
 
         if folder:
             self.dolphindir.setText(folder)
             self.dirstatus.setPixmap(QPixmap("res/check.png"))
-            if self.version.text() != 'Installion Status Unkown':
+            if self.version.text() != 'Installation Status Unknown':
                 version = self.version.text()
             else:
                 version = ''
@@ -274,6 +313,7 @@ def center(w):
 
 class thread(QThread):
     finished = pyqtSignal(str)
+    changelogtext = pyqtSignal(str)
 
     def __init__(self, func, *args):
         QThread.__init__(self)
@@ -284,7 +324,11 @@ class thread(QThread):
         self.wait()
 
     def run(self, *args):
-        self.func(*args)
+        result = self.func(*args)
+        
+        if "changelog" in result:
+            self.changelogtext.emit(result["changelog"])
+            
         self.finished.emit("Finished")
 
 
