@@ -1,24 +1,21 @@
-"""command line for dolphin update"""
+"""Command line for dolphin update"""
 
-#
-# Imports
-#
 import argparse
 import os
 import pickle
-import subprocess
 import sys
 import urllib
 import urllib.request
+from contextlib import suppress
 
-from bs4 import BeautifulSoup
+from Source.controllers.data_control import extract_7z, update_user_data, load_user_data
+from Source.controllers.dolphin_control import get_dolphin_link
 
 
 class DolphinCmd:
     """script for getting dolphin updates"""
 
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
-    USER_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/user.data')
 
     def __init__(self, args=None):
         """Perform argument processing and other setup"""
@@ -64,14 +61,11 @@ class DolphinCmd:
     #
 
     def _downloadNew(self):
-        dir = self.path
-        version = self.version
-
         print('Getting newest version...')
         link = self._retrieveCurrent()
         current = os.path.basename(link)
 
-        if os.path.basename(link) == version:
+        if os.path.basename(link) == self.version:
             print('You already have the most recent version.')
             return
         elif not os.path.isdir(self.path):
@@ -79,48 +73,37 @@ class DolphinCmd:
             return
 
         file_name = os.path.basename(link)
-        file_path = os.path.join(self.DOWNLOAD_PATH, file_name)
+        zip_file = os.path.join(self.DOWNLOAD_PATH, file_name)
+        to_directory = os.path.dirname(self.path)
 
         try:
             print('Downloading...')
-            urllib.request.urlretrieve(link, file_path)
+            urllib.request.urlretrieve(link, zip_file)
             print('Downloaded. Extracting...')
-
-            path = os.path.dirname(dir)
 
             if not os.path.isfile('res/7za.exe'):
                 print('Update failed: Please install 7-Zip')
                 return
 
-            os.rename(dir, os.path.join(os.path.dirname(dir), 'Dolphin-x64'))
-            cmd = ['res\\7za', 'x', '-o%s' % path, '-y', '--', file_path]
-            starti = subprocess.STARTUPINFO()
-            starti.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            subprocess.call(cmd, startupinfo=starti,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT,
-                            stdin=subprocess.PIPE)
+            os.rename(self.path, os.path.join(to_directory, 'Dolphin-x64'))
+            extract_7z(zip_file, to_directory)
 
             print('Update successful.')
             self.version = current
-            with open(self.USER_DATA_PATH, 'wb') as file:
-                data = {'path': self.path, 'version': self.version}
-                pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+            update_user_data(self.path, self.version)
 
         except Exception as error:
             print('Update Failed. %s' % error)
         finally:
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-            if os.path.isdir(os.path.join(os.path.dirname(dir), 'Dolphin-x64')):
-                os.rename(os.path.join(os.path.dirname(dir), 'Dolphin-x64'), dir)
+            with suppress(FileNotFoundError):
+                os.remove(zip_file)
+                os.rename(os.path.join(to_directory, 'Dolphin-x64'), self.path)
 
     def _setDolphinFolder(self, folder):
         if os.path.isdir(folder):
             self.path = folder
-            data = {'path': folder, 'version': self.version}
-            with open(self.USER_DATA_PATH, 'wb') as file:
-                pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+            update_user_data(folder, self.version)
+
             print('Dolphin Directory: ' + folder)
         else:
             print('Directory not found.')
@@ -128,42 +111,25 @@ class DolphinCmd:
     def _retrieveCurrent(self):
         """retrieve the current version"""
         try:
-            url = 'https://dolphin-emu.org/download/'
-            response = urllib.request.urlopen(url)
-            data = response.read()
-            text = data.decode('utf-8')
-            soup = BeautifulSoup(text, "html.parser")
-            try:
-                link = soup.find_all('a', {"class": 'btn always-ltr btn-info win'}, limit=1, href=True)[0]['href']
-                print('Newest Version: ' + os.path.basename(link))
-                return link
-            except:
-                print('Newest version not detected, please contact the developer.')
-        except Exception as error:
-            print(error)
+            link = get_dolphin_link()
+            print('Newest Version: ' + os.path.basename(link))
+            return link
+        except:
+            print('Newest version not detected, please contact the developer.')
 
     def _clearVersion(self):
         """clear out your current version"""
         self.version = ''
-        with open(self.USER_DATA_PATH, 'wb') as file:
-            data = {'path': self.path, 'version': ''}
-            pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+        update_user_data(self.path, '')
         print('Version cleared.')
 
     def _loadData(self):
         """initialize the dolphin path"""
-        text_path = self.USER_DATA_PATH
-        if os.path.isfile(text_path):
-            # Load data (deserialize)
-            try:
-                with open(text_path, 'rb') as file:
-                    data = pickle.load(file)
-                self.path = data['path']
-                self.version = data['version']
-            except:
-                with open(text_path, 'wb') as file:
-                    data = {'path': '', 'version': ''}
-                    pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+        try:
+            self.path, self.version = load_user_data()
+        except:
+            update_user_data('', '')
+
 
 def launch_new_instance(args):
     """run the script with args"""
@@ -173,6 +139,7 @@ def launch_new_instance(args):
 
     except KeyboardInterrupt:
         print("Shutdown requested...exiting")
+
 
 if __name__ == "__main__":
     launch_new_instance(sys.argv[1:])
