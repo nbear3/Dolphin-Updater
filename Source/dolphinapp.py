@@ -5,13 +5,15 @@ import urllib
 import urllib.request
 from contextlib import suppress
 
+import subprocess
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, qApp, QMessageBox, QGridLayout, QWidget, \
     QVBoxLayout, QFrame, QLabel, QLineEdit, QFileDialog, QDesktopWidget, QTextBrowser
 
-from Source.controllers.data_control import update_user_data, load_user_data, extract_7z
-from Source.controllers.dolphin_control import get_dolphin_link, get_dolphin_html, get_dolphin_changelog
+from controllers.data_control import update_user_data, load_user_data, extract_7z
+from controllers.dolphin_control import get_dolphin_link, get_dolphin_html, get_dolphin_changelog
 
 
 class DolphinUpdate(QMainWindow):
@@ -27,8 +29,9 @@ class DolphinUpdate(QMainWindow):
         self.check = QPixmap("res/check.png")
         self.cancel = QPixmap("res/cancel.png")
 
-        self.init_window()
         self.init_ui()
+        self.init_window()
+
         self.init_user_data()
 
         self.setGeometry(500, 500, 500, 465)
@@ -81,15 +84,15 @@ class DolphinUpdate(QMainWindow):
         self.current_status = QLabel(main)
         self.current_status.setPixmap(QPixmap("res/info.png"))
 
-        grid.addWidget(self.dolphin_dir_status, 0, 0)
+        grid.addWidget(self.dolphin_dir_status, 0, 0, Qt.AlignCenter)
         grid.addWidget(QLabel('Dolphin Directory:'), 0, 2)
         grid.addWidget(self.dolphin_dir, 0, 3)
 
-        grid.addWidget(self.version_status, 1, 0)
+        grid.addWidget(self.version_status, 1, 0, Qt.AlignCenter)
         grid.addWidget(QLabel('Your Version:'), 1, 2)
         grid.addWidget(self.version, 1, 3)
 
-        grid.addWidget(self.current_status, 2, 0)
+        grid.addWidget(self.current_status, 2, 0, Qt.AlignCenter)
         grid.addWidget(QLabel('Current Version:'), 2, 2)
         grid.addWidget(self.current, 2, 3)
 
@@ -100,12 +103,6 @@ class DolphinUpdate(QMainWindow):
         grid.setRowStretch(4, 1)
 
     def init_window(self):
-
-        open_action = QAction(QIcon('res/open.png'), '&Open', self)
-        open_action.setShortcut('Ctrl+O')
-        open_action.setStatusTip('Select Dolphin Folder')
-        open_action.triggered.connect(self.select_dolphin_folder)
-
         self.update_thread = UpdateThread()
         self.update_thread.current.connect(self.update_current)
         self.update_thread.changelog.connect(self.update_changelog)
@@ -115,6 +112,11 @@ class DolphinUpdate(QMainWindow):
         self.download_thread = DownloadThread()
         self.download_thread.status.connect(self.update_version)
         self.download_thread.error.connect(self.show_warning)
+
+        open_action = QAction(QIcon('res/open.png'), '&Open', self)
+        open_action.setShortcut('Ctrl+O')
+        open_action.setStatusTip('Select Dolphin Folder')
+        open_action.triggered.connect(self.select_dolphin_folder)
 
         update_action = QAction(QIcon('res/synchronize.png'), '&Refresh', self)
         update_action.setStatusTip('Refresh Current Version')
@@ -133,16 +135,38 @@ class DolphinUpdate(QMainWindow):
         exit_action.setStatusTip('Exit application')
         exit_action.triggered.connect(qApp.quit)
 
+        launch_dolphin_action = QAction(QIcon('res/dolphin.png'), '&Launch Dolphin', self)
+        launch_dolphin_action.setShortcut('Ctrl+D')
+        launch_dolphin_action.setStatusTip('Launch Dolphin')
+        launch_dolphin_action.triggered.connect(self.launch_dolphin)
+
         file_menu = self.menuBar().addMenu('&File')
         file_menu.addAction(open_action)
         file_menu.addAction(update_action)
         file_menu.addAction(clear_action)
+        file_menu.addAction(launch_dolphin_action)
         file_menu.addAction(exit_action)
 
         toolbar = self.addToolBar('Toolbar')
         toolbar.addAction(open_action)
         toolbar.addAction(update_action)
         toolbar.addAction(download_action)
+        toolbar.addSeparator()
+        toolbar.addAction(launch_dolphin_action)
+
+    def launch_dolphin(self):
+        dolphin_dir = self.dolphin_dir.text()
+        if not dolphin_dir:
+            self.show_warning('Please select a dolphin folder.')
+            return
+
+        dolphin_path = os.path.join(dolphin_dir, 'Dolphin.exe')
+        if not os.path.isfile(dolphin_path):
+            self.show_warning('Could not find "Dolphin.exe".')
+            return
+
+        subprocess.Popen(dolphin_path, cwd=dolphin_dir)
+        qApp.quit()
 
     def update_version(self, message):
         if message == 'finished':

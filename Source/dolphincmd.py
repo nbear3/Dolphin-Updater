@@ -8,12 +8,11 @@ import urllib
 import urllib.request
 from contextlib import suppress
 
-from Source.controllers.data_control import extract_7z, update_user_data, load_user_data
-from Source.controllers.dolphin_control import get_dolphin_link
+from controllers.data_control import extract_7z, update_user_data, load_user_data
+from controllers.dolphin_control import get_dolphin_link
 
 
 class DolphinCmd:
-    """script for getting dolphin updates"""
 
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
 
@@ -22,7 +21,7 @@ class DolphinCmd:
         self.args = args
         self.path = ''
         self.version = ''
-        self._loadData()
+        self._init_user_data()
 
     def get_cmdline_options(self):
         """Read commandline options"""
@@ -45,24 +44,24 @@ class DolphinCmd:
         if opt.info or not self.args:
             path = self.path
             version = self.version
-            print('Dolphin Directory: ' + (path if path else 'Unkown'))
-            print('Dolphin Version: ' + (version if version else 'Unkown'))
+            print('Dolphin Directory: ' + (path if path else 'Unknown'))
+            print('Dolphin Version: ' + (version if version else 'Unknown'))
         if opt.retrieve:
-            self._retrieveCurrent()
+            self._retrieve_current()
         if opt.clear:
-            self._clearVersion()
+            self._clear_version()
         if opt.folder:
-            self._setDolphinFolder(opt.folder)
+            self._set_dolphin_folder(opt.folder)
         if opt.download:
-            self._downloadNew()
+            self._download_new()
 
     #
     # Private Methods
     #
 
-    def _downloadNew(self):
+    def _download_new(self):
         print('Getting newest version...')
-        link = self._retrieveCurrent()
+        link = self._retrieve_current()
         current = os.path.basename(link)
 
         if os.path.basename(link) == self.version:
@@ -99,7 +98,7 @@ class DolphinCmd:
                 os.remove(zip_file)
                 os.rename(os.path.join(to_directory, 'Dolphin-x64'), self.path)
 
-    def _setDolphinFolder(self, folder):
+    def _set_dolphin_folder(self, folder):
         if os.path.isdir(folder):
             self.path = folder
             update_user_data(folder, self.version)
@@ -108,7 +107,7 @@ class DolphinCmd:
         else:
             print('Directory not found.')
 
-    def _retrieveCurrent(self):
+    def _retrieve_current(self):
         """retrieve the current version"""
         try:
             link = get_dolphin_link()
@@ -117,13 +116,13 @@ class DolphinCmd:
         except:
             print('Newest version not detected, please contact the developer.')
 
-    def _clearVersion(self):
+    def _clear_version(self):
         """clear out your current version"""
         self.version = ''
         update_user_data(self.path, '')
         print('Version cleared.')
 
-    def _loadData(self):
+    def _init_user_data(self):
         """initialize the dolphin path"""
         try:
             self.path, self.version = load_user_data()
