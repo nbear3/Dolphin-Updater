@@ -7,12 +7,11 @@ import urllib
 import urllib.request
 from contextlib import suppress
 
-from controllers.data_control import extract_7z, UserDataControl
+from controllers.data_control import extract_7z, UserDataControl, rename_7z
 from controllers.dolphin_control import get_dolphin_link
 
 
 class DolphinCmd:
-
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
 
     def __init__(self, user_data_control, args=None):
@@ -73,7 +72,7 @@ class DolphinCmd:
 
         file_name = os.path.basename(link)
         zip_file = os.path.join(self.DOWNLOAD_PATH, file_name)
-        to_directory = os.path.dirname(self.path)
+        to_directory, base_name = os.path.split(self.dir)
 
         try:
             print('Downloading...')
@@ -84,7 +83,7 @@ class DolphinCmd:
                 print('Update failed: Please install 7-Zip')
                 return
 
-            os.rename(self.path, os.path.join(to_directory, 'Dolphin-x64'))
+            rename_7z(zip_file, 'Dolphin-x64', base_name)
             extract_7z(zip_file, to_directory)
 
             print('Update successful.')
@@ -93,10 +92,10 @@ class DolphinCmd:
 
         except Exception as error:
             print('Update Failed. %s' % error)
+
         finally:
             with suppress(FileNotFoundError):
                 os.remove(zip_file)
-                os.rename(os.path.join(to_directory, 'Dolphin-x64'), self.path)
 
     def _set_dolphin_folder(self, folder):
         if os.path.isdir(folder):
@@ -113,6 +112,7 @@ class DolphinCmd:
             link = get_dolphin_link()
             print('Newest Version: ' + os.path.basename(link))
             return link
+
         except:
             print('Newest version not detected, please contact the developer.')
 

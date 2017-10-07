@@ -1,11 +1,11 @@
 import os
+import subprocess
 import sys
 import traceback
 import urllib
 import urllib.request
 from contextlib import suppress
 
-import subprocess
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
@@ -13,9 +13,8 @@ from PyQt5.QtWidgets import QCheckBox
 from PyQt5.QtWidgets import QFormLayout
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, qApp, QMessageBox, QGridLayout, QWidget, \
     QVBoxLayout, QFrame, QLabel, QLineEdit, QFileDialog, QDesktopWidget, QTextBrowser
-from PyQt5.QtWidgets import QSizePolicy
 
-from controllers.data_control import extract_7z, UserDataControl
+from controllers.data_control import extract_7z, UserDataControl, rename_7z
 from controllers.dolphin_control import get_dolphin_link, get_dolphin_html, get_dolphin_changelog
 
 
@@ -24,14 +23,11 @@ class DolphinUpdate(QMainWindow):
     APP_TITLE = 'DolphinUpdate'
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
 
-    AUTO_LAUNCH = True;
-
     def __init__(self, user_data_control):
         super().__init__()
-        self._udc = user_data_control
         sys.excepthook = self._displayError
+        self._udc = user_data_control
 
-        self.statusBar = self.statusBar()
         self.check = QPixmap("res/check.png")
         self.cancel = QPixmap("res/cancel.png")
 
@@ -53,7 +49,7 @@ class DolphinUpdate(QMainWindow):
 
     def init_ui(self):
         """create the UI elements in the main window"""
-        self.statusBar.showMessage('Ready')
+        self.statusBar().showMessage('Ready')
 
         main = QWidget()
         self.setCentralWidget(main)
@@ -107,7 +103,6 @@ class DolphinUpdate(QMainWindow):
         grid.setVerticalSpacing(2)
         grid.setRowStretch(4, 1)
 
-    # noinspection PyUnresolvedReferences
     def init_window(self):
         self.update_thread = UpdateThread()
         self.update_thread.current.connect(self.update_current)
@@ -160,13 +155,13 @@ class DolphinUpdate(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(launch_dolphin_action)
 
-        auto_launch_frame = QFrame(self)
+        auto_launch_frame = QFrame()
         auto_launch_form = QFormLayout(auto_launch_frame)
-        self.auto_launch_check = QCheckBox(self.statusBar)
+        self.auto_launch_check = QCheckBox(auto_launch_frame)
         self.auto_launch_check.setChecked(self._udc.get_auto_launch())
         auto_launch_form.addRow("Auto Launch?", self.auto_launch_check)
         auto_launch_form.setContentsMargins(0, 1, 2, 0)
-        self.statusBar.addPermanentWidget(auto_launch_frame)
+        self.statusBar().addPermanentWidget(auto_launch_frame)
 
     def launch_dolphin(self):
         dolphin_dir = self.dolphin_dir.text()
@@ -238,7 +233,6 @@ class DolphinUpdate(QMainWindow):
             self.version_status.setPixmap(self.check)
             if self.auto_launch_check.isChecked():
                 self.launch_dolphin()
-
         else:
             self.version_status.setPixmap(self.cancel)
             if self.auto_launch_check.isChecked() and self.dolphin_dir.text():
@@ -246,13 +240,10 @@ class DolphinUpdate(QMainWindow):
 
     def select_dolphin_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, 'Select Dolphin Directory'))
-
         if folder:
             self.dolphin_dir.setText(folder)
             self.dolphin_dir_status.setPixmap(QPixmap("res/check.png"))
-            version = self.version.text()
             self._udc.set_user_path(folder)
-
 
     def init_user_data(self):
         """initialize the dolphin path"""
@@ -279,6 +270,7 @@ class DolphinUpdate(QMainWindow):
 
 
 class UpdateThread(QThread):
+
     current = pyqtSignal(str)
     changelog = pyqtSignal(str)
     error = pyqtSignal(str)
@@ -298,11 +290,13 @@ class UpdateThread(QThread):
             changelog = get_dolphin_changelog(dolphin_html)
             self.current.emit(os.path.basename(link))
             self.changelog.emit(changelog)
+
         except:
             self.error.emit('Error parsing dolphin-emu.org, please contact the developer.')
 
 
 class DownloadThread(QThread):
+
     status = pyqtSignal(str)
     error = pyqtSignal(str)
 
@@ -329,7 +323,7 @@ class DownloadThread(QThread):
 
         file_name = os.path.basename(link)
         zip_file = os.path.join(DolphinUpdate.DOWNLOAD_PATH, file_name)
-        to_directory = os.path.dirname(self.dir)
+        to_directory, base_name = os.path.split(self.dir)
 
         try:
             self.status.emit('Downloading...')
@@ -341,7 +335,7 @@ class DownloadThread(QThread):
                 self.status.emit('Extraction Failed')
                 return
 
-            os.rename(self.dir, os.path.join(to_directory, 'Dolphin-x64'))
+            rename_7z(zip_file, 'Dolphin-x64', base_name)
             extract_7z(zip_file, to_directory)
 
             self.status.emit(file_name)
@@ -350,10 +344,10 @@ class DownloadThread(QThread):
         except Exception as error:
             self.error.emit('Update Failed. %s' % error)
             self.status.emit('Update Failed.')
+
         finally:
             with suppress(FileNotFoundError):
                 os.remove(zip_file)
-                os.rename(os.path.join(to_directory, 'Dolphin-x64'), self.dir)
 
 
 def center(w):

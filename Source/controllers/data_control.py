@@ -42,9 +42,17 @@ class UserDataControl:
             self.set_user_version('')
             return '', ''
 
+
+def rename_7z(zip_file, src, dest):
+    _call_proc('res\\7za', 'rn', zip_file, src, dest)
+
+
 def extract_7z(zip_file, to_directory):
     """Extract a zip to a directory"""
-    proc_args = ['res\\7za', 'x', '-o%s' % to_directory, '-y', '--', zip_file]
+    _call_proc('res\\7za', 'x', zip_file, '-o%s' % to_directory, '-y')
+
+
+def _call_proc(*proc_args):
     starti = subprocess.STARTUPINFO()
     starti.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     subprocess.call(proc_args, startupinfo=starti,
