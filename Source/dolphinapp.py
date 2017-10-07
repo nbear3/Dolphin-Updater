@@ -9,10 +9,13 @@ import subprocess
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtWidgets import QCheckBox
+from PyQt5.QtWidgets import QFormLayout
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, qApp, QMessageBox, QGridLayout, QWidget, \
     QVBoxLayout, QFrame, QLabel, QLineEdit, QFileDialog, QDesktopWidget, QTextBrowser
+from PyQt5.QtWidgets import QSizePolicy
 
-from controllers.data_control import update_user_data, load_user_data, extract_7z
+from controllers.data_control import extract_7z, UserDataControl
 from controllers.dolphin_control import get_dolphin_link, get_dolphin_html, get_dolphin_changelog
 
 
@@ -21,8 +24,11 @@ class DolphinUpdate(QMainWindow):
     APP_TITLE = 'DolphinUpdate'
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
 
-    def __init__(self):
+    AUTO_LAUNCH = True;
+
+    def __init__(self, user_data_control):
         super().__init__()
+        self._udc = user_data_control
         sys.excepthook = self._displayError
 
         self.statusBar = self.statusBar()
@@ -31,7 +37,6 @@ class DolphinUpdate(QMainWindow):
 
         self.init_ui()
         self.init_window()
-
         self.init_user_data()
 
         self.setGeometry(500, 500, 500, 465)
@@ -102,6 +107,7 @@ class DolphinUpdate(QMainWindow):
         grid.setVerticalSpacing(2)
         grid.setRowStretch(4, 1)
 
+    # noinspection PyUnresolvedReferences
     def init_window(self):
         self.update_thread = UpdateThread()
         self.update_thread.current.connect(self.update_current)
@@ -133,7 +139,7 @@ class DolphinUpdate(QMainWindow):
         exit_action = QAction(QIcon('res/exit.png'), '&Exit', self)
         exit_action.setShortcut('Ctrl+Q')
         exit_action.setStatusTip('Exit application')
-        exit_action.triggered.connect(qApp.quit)
+        exit_action.triggered.connect(self.close)
 
         launch_dolphin_action = QAction(QIcon('res/dolphin.png'), '&Launch Dolphin', self)
         launch_dolphin_action.setShortcut('Ctrl+D')
@@ -154,6 +160,14 @@ class DolphinUpdate(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(launch_dolphin_action)
 
+        auto_launch_frame = QFrame(self)
+        auto_launch_form = QFormLayout(auto_launch_frame)
+        self.auto_launch_check = QCheckBox(self.statusBar)
+        self.auto_launch_check.setChecked(self._udc.get_auto_launch())
+        auto_launch_form.addRow("Auto Launch?", self.auto_launch_check)
+        auto_launch_form.setContentsMargins(0, 1, 2, 0)
+        self.statusBar.addPermanentWidget(auto_launch_frame)
+
     def launch_dolphin(self):
         dolphin_dir = self.dolphin_dir.text()
         if not dolphin_dir:
@@ -166,15 +180,16 @@ class DolphinUpdate(QMainWindow):
             return
 
         subprocess.Popen(dolphin_path, cwd=dolphin_dir)
-        qApp.quit()
+        self.close()
 
     def update_version(self, message):
         if message == 'finished':
             self.version.setText(self.version.placeholderText())
             self.version.setPlaceholderText("Installation Status Unknown")
             self.version_status.setPixmap(self.check)
-            update_user_data(self.dolphin_dir.text(), self.version.text())
-
+            self._udc.set_user_version(self.version.text())
+            if self.auto_launch_check.isChecked():
+                self.launch_dolphin()
         else:
             self.version.setPlaceholderText(message)
 
@@ -186,7 +201,7 @@ class DolphinUpdate(QMainWindow):
             self.show_warning('You already have the most recent version.')
             return
         elif not os.path.isdir(dolphin_dir):
-            self.show_warning('Uh-oh', 'Your dolphin folder path is invalid.')
+            self.show_warning('Your dolphin folder path is invalid.')
             self.dolphin_dir_status.setPixmap(QPixmap("res/cancel.png"))
             return
 
@@ -210,7 +225,7 @@ class DolphinUpdate(QMainWindow):
         if reply == QMessageBox.Yes:
             self.version.setText('')
             self.version_status.setPixmap(self.cancel)
-            update_user_data(self.dolphin_dir.text(), '')
+            self._udc.set_user_version('')
 
     def retrieve_current(self):
         if ~self.update_thread.isRunning():
@@ -221,8 +236,13 @@ class DolphinUpdate(QMainWindow):
         self.current.setText(current)
         if self.version.text() == self.current.text():
             self.version_status.setPixmap(self.check)
+            if self.auto_launch_check.isChecked():
+                self.launch_dolphin()
+
         else:
             self.version_status.setPixmap(self.cancel)
+            if self.auto_launch_check.isChecked() and self.dolphin_dir.text():
+                self.download_new()
 
     def select_dolphin_folder(self):
         folder = str(QFileDialog.getExistingDirectory(self, 'Select Dolphin Directory'))
@@ -231,37 +251,31 @@ class DolphinUpdate(QMainWindow):
             self.dolphin_dir.setText(folder)
             self.dolphin_dir_status.setPixmap(QPixmap("res/check.png"))
             version = self.version.text()
-            update_user_data(folder, version)
+            self._udc.set_user_path(folder)
 
 
     def init_user_data(self):
         """initialize the dolphin path"""
-        try:
-            path, version = load_user_data()
-            if path:
-                self.dolphin_dir.setText(path)
-                if os.path.isdir(path):
-                    self.dolphin_dir_status.setPixmap(self.check)
-            if version:
-                self.version.setText(version)
-
-        except:
-            update_user_data('', '')
+        path, version = self._udc.load_user_data()
+        if path:
+            self.dolphin_dir.setText(path)
+            if os.path.isdir(path):
+                self.dolphin_dir_status.setPixmap(self.check)
+        if version:
+            self.version.setText(version)
 
     # PyQt closeEvent called on exit
     def closeEvent(self, event):
-        if self.download_thread.isRunning() or self.update_thread.isRunning():
+        self._udc.set_auto_launch(self.auto_launch_check.isChecked())
+        if self.download_thread.isRunning():
+            event.ignore()
             reply = QMessageBox.question(self, 'Exit', "Are you sure to quit?", QMessageBox.Yes |
                                          QMessageBox.No, QMessageBox.No)
-
-            if reply == QMessageBox.No:
-                event.ignore()
-                return
-            else:
-                self.download_thread.wait()
-                self.update_thread.wait()
-
-        event.accept()
+            if reply == QMessageBox.Yes:
+                self.hide()
+                self.download_thread.finished.connect(qApp.quit)
+        else:
+            event.accept()
 
 
 class UpdateThread(QThread):
@@ -351,5 +365,6 @@ def center(w):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    ex = DolphinUpdate()
-    sys.exit(app.exec_())
+    with UserDataControl() as udc:
+        ex = DolphinUpdate(udc)
+        app.exec_()

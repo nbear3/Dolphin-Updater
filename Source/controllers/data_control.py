@@ -1,25 +1,46 @@
 """Handle control over user save data"""
 
 import os
-import pickle
+import shelve
 
 import subprocess
 
-USER_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/user.data')
+USER_DATA_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/user.db')
 
 
-def update_user_data(path, version):
-    with open(USER_DATA_PATH, 'wb') as file:
-        data = {'path': path, 'version': version}
-        pickle.dump(data, file, protocol=pickle.HIGHEST_PROTOCOL)
+class UserDataControl:
+    def __init__(self):
+        self._sh = shelve.open(USER_DATA_PATH, writeback=False)
 
+    def __enter__(self):
+        return self
 
-def load_user_data():
-    with open(USER_DATA_PATH, 'rb') as file:
-        data = pickle.load(file)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._sh.close()
 
-    return data['path'], data['version']
+    def set_user_path(self, path):
+        self._sh['path'] = path
 
+    def set_user_version(self, version):
+        self._sh['version'] = version
+
+    def set_auto_launch(self, auto_launch):
+        self._sh['auto_launch'] = auto_launch
+
+    def get_auto_launch(self):
+        try:
+            return self._sh.get('auto_launch', False)
+        except:
+            self.set_auto_launch(False)
+            return False
+
+    def load_user_data(self):
+        try:
+            return self._sh.get('path', ''), self._sh.get('version', '')
+        except:
+            self.set_user_path('')
+            self.set_user_version('')
+            return '', ''
 
 def extract_7z(zip_file, to_directory):
     """Extract a zip to a directory"""

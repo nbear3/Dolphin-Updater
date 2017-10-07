@@ -2,13 +2,12 @@
 
 import argparse
 import os
-import pickle
 import sys
 import urllib
 import urllib.request
 from contextlib import suppress
 
-from controllers.data_control import extract_7z, update_user_data, load_user_data
+from controllers.data_control import extract_7z, UserDataControl
 from controllers.dolphin_control import get_dolphin_link
 
 
@@ -16,8 +15,9 @@ class DolphinCmd:
 
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
 
-    def __init__(self, args=None):
+    def __init__(self, user_data_control, args=None):
         """Perform argument processing and other setup"""
+        self._udc = user_data_control
         self.args = args
         self.path = ''
         self.version = ''
@@ -89,7 +89,7 @@ class DolphinCmd:
 
             print('Update successful.')
             self.version = current
-            update_user_data(self.path, self.version)
+            self._udc.set_user_version(self.version)
 
         except Exception as error:
             print('Update Failed. %s' % error)
@@ -101,7 +101,7 @@ class DolphinCmd:
     def _set_dolphin_folder(self, folder):
         if os.path.isdir(folder):
             self.path = folder
-            update_user_data(folder, self.version)
+            self._udc.set_user_path(folder)
 
             print('Dolphin Directory: ' + folder)
         else:
@@ -119,22 +119,20 @@ class DolphinCmd:
     def _clear_version(self):
         """clear out your current version"""
         self.version = ''
-        update_user_data(self.path, '')
+        self._udc.set_user_version(self.version)
         print('Version cleared.')
 
     def _init_user_data(self):
         """initialize the dolphin path"""
-        try:
-            self.path, self.version = load_user_data()
-        except:
-            update_user_data('', '')
+        self.path, self.version = self._udc.load_user_data()
 
 
 def launch_new_instance(args):
     """run the script with args"""
     try:
-        script = DolphinCmd(args)
-        script.run()
+        with UserDataControl() as udc:
+            script = DolphinCmd(udc, args)
+            script.run()
 
     except KeyboardInterrupt:
         print("Shutdown requested...exiting")

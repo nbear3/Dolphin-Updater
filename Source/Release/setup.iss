@@ -27,8 +27,21 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "dist\DolphinUpdate.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\DolphinCmd.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\res\*"; DestDir: "{app}\res"; Flags: ignoreversion
-Source: "tmp\*"; DestDir: "{userappdata}\DolphinUpdate"; Flags: onlyifdoesntexist
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+
+[Dirs]
+Name: "{userappdata}\DolphinUpdate"
+
+[Code]
+ procedure CurUninstallStepChanged (CurUninstallStep: TUninstallStep);
+ begin
+    case CurUninstallStep of
+      usPostUninstall:
+        begin
+            DelTree(ExpandConstant('{userappdata}\DolphinUpdate'), True, True, True);
+       end;
+   end;
+end;
 
 [Icons]
 Name: "{commonprograms}\DolphinUpdate"; Filename: "{app}\DolphinUpdate.exe"
