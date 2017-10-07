@@ -7,8 +7,8 @@
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
 AppId={{3521088C-5C03-42B6-9A3C-0E8BCE2CBF78}}
 AppName=DolphinUpdate
-AppVersion=1
-;AppVerName=DolphinUpdate 1
+AppVersion=3.0
+;AppVerName=DolphinUpdate 3.0
 AppPublisher=Chris
 DefaultDirName={pf}\DolphinUpdate
 DisableProgramGroupPage=yes
@@ -49,4 +49,3 @@ Name: "{commondesktop}\DolphinUpdate"; Filename: "{app}\DolphinUpdate.exe"; Task
 
 [Run]
 Filename: "{app}\DolphinUpdate.exe"; Description: "{cm:LaunchProgram,DolphinUpdate}"; Flags: nowait postinstall skipifsilent
-

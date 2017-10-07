@@ -1,15 +1,19 @@
 # Dolphin-Updater
 Update to the newest version of Dolphin Emulator with a click of a button!
+<br />
+### Release 3.0 Features:
+* Detect newest version and download
+* Launch dolphin directly from the app
+* Shows a recent changelog
+* Option to auto-launch dolphin
+* Command line capabilities
+* Compatible with dev builds from Dolphin 5.0 and up!
 
-As of Release 2.5 DolphinUpdate has command line capabilities!
-
-Compatible with dev builds from Dolphin 5.0 and up!
-
-After setting up, select which folder you keep dolphin in using the folder button, then click the download button to install the newest version. **Administrator is only required if your dolphin path is a system protected folder.** 
+After setting up, select which folder you keep dolphin in using the folder button, then click the download button to install the newest version. **Administrator is only required if your dolphin path is a system protected folder.**
 
 Here's what the application will look like:
 
-![app_example](https://user-images.githubusercontent.com/18427811/31301080-6c1f5eee-aac5-11e7-89d7-c3635ae3f09f.PNG)
+![app_example](https://user-images.githubusercontent.com/18427811/31310946-eae05954-ab6f-11e7-8b5f-7a803c09c0b2.PNG)
 
 Command Line Usage Example:
 <pre><code>"C:\Program Files (x86)\DolphinUpdate\DolphinCmd" --help     (list all command line arguments)

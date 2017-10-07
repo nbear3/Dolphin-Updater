@@ -20,7 +20,7 @@ from controllers.dolphin_control import get_dolphin_link, get_dolphin_html, get_
 
 class DolphinUpdate(QMainWindow):
 
-    APP_TITLE = 'DolphinUpdate'
+    APP_TITLE = 'DolphinUpdate 3.0'
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
 
     def __init__(self, user_data_control):
@@ -36,10 +36,9 @@ class DolphinUpdate(QMainWindow):
         self.init_user_data()
 
         self.setGeometry(500, 500, 500, 465)
-        center(self)
         self.setWindowTitle(self.APP_TITLE)
         self.setWindowIcon(QIcon('res/rabbit.png'))
-
+        center(self)
         self.show()
 
     # PyQt Error Handling
