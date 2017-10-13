@@ -29,7 +29,8 @@ def get_dolphin_changelog(dolphin_html=None):
     sections = soup.find('table', {"class": 'versions-list dev-versions'})
     for section in sections.find_all('tr', {"class": 'infos'}):
         version = section.find("td", {"class": "version"}).find("a").get_text()
+        reldate = section.find("td", {"class": "reldate"}).get_text()
         change = section.find("td", {"class": "description"}).get_text()
-        text += version + "\n" + change + "\n\n"
+        text += version + " - " + reldate + ":\n" + change + "\n\n"
 
     return text
