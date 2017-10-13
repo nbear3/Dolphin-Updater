@@ -34,6 +34,16 @@ class UserDataControl:
             self.set_auto_launch(False)
             return False
 
+    def set_hide_changelog(self, hide_status):
+        self._sh['hide_changelog'] = hide_status
+
+    def get_hide_changelog(self):
+        try:
+            return self._sh.get('hide_changelog', False)
+        except:
+            self.set_hide_changelog(False)
+            return False
+
     def load_user_data(self):
         try:
             return self._sh.get('path', ''), self._sh.get('version', '')

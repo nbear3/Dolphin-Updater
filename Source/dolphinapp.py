@@ -35,7 +35,13 @@ class DolphinUpdate(QMainWindow):
         self.init_window()
         self.init_user_data()
 
-        self.setGeometry(500, 500, 500, 465)
+        startHeight = 465
+        if self._udc.get_hide_changelog():
+            startHeight = 250
+            self.hidechangelog_action.setChecked(True)
+            
+        self.setMinimumHeight(250)  # needs to be set for resizing
+        self.setGeometry(500, 500, 500, startHeight)
         self.setWindowTitle(self.APP_TITLE)
         self.setWindowIcon(QIcon('res/rabbit.png'))
         center(self)
@@ -65,14 +71,14 @@ class DolphinUpdate(QMainWindow):
         self.current.setPlaceholderText("Loading Current Version...")
         self.current.setReadOnly(True)
 
-        changelog_frame = QFrame(main)
-        changelog_vbox = QVBoxLayout(changelog_frame)
+        self.changelog_frame = QFrame(main)
+        changelog_vbox = QVBoxLayout(self.changelog_frame)
         self.changelog = QTextBrowser(main)
         self.changelog.setPlaceholderText("Loading Changelog...")
         self.changelog.setReadOnly(True)
         changelog_vbox.addWidget(QLabel('Changelog:'))
         changelog_vbox.addWidget(self.changelog)
-        changelog_frame.setContentsMargins(0, 20, -7, 0)
+        self.changelog_frame.setContentsMargins(0, 20, -7, 0)
 
         grid = QGridLayout()
         main.setLayout(grid)
@@ -96,11 +102,11 @@ class DolphinUpdate(QMainWindow):
         grid.addWidget(QLabel('Current Version:'), 2, 2)
         grid.addWidget(self.current, 2, 3)
 
-        grid.addWidget(changelog_frame, 4, 0, 1, 4)
+        grid.addWidget(self.changelog_frame, 3, 0, 1, 4)
 
         grid.setSpacing(10)
         grid.setVerticalSpacing(2)
-        grid.setRowStretch(4, 1)
+        grid.setRowStretch(3, 1)
 
     def init_window(self):
         self.update_thread = UpdateThread()
@@ -117,6 +123,11 @@ class DolphinUpdate(QMainWindow):
         open_action.setShortcut('Ctrl+O')
         open_action.setStatusTip('Select Dolphin Folder')
         open_action.triggered.connect(self.select_dolphin_folder)
+
+        self.hidechangelog_action = QAction('Hide Changelog', self)
+        self.hidechangelog_action.setStatusTip('Hide Changelog Section')
+        self.hidechangelog_action.setCheckable(True)
+        self.hidechangelog_action.toggled.connect(self.hide_changelog)
 
         update_action = QAction(QIcon('res/synchronize.png'), '&Refresh', self)
         update_action.setStatusTip('Refresh Current Version')
@@ -147,6 +158,9 @@ class DolphinUpdate(QMainWindow):
         file_menu.addAction(launch_dolphin_action)
         file_menu.addAction(exit_action)
 
+        file_menu = self.menuBar().addMenu('&View')
+        file_menu.addAction(self.hidechangelog_action)
+        
         toolbar = self.addToolBar('Toolbar')
         toolbar.addAction(open_action)
         toolbar.addAction(update_action)
@@ -214,7 +228,7 @@ class DolphinUpdate(QMainWindow):
         QMessageBox.warning(self, 'Uh-oh', message, QMessageBox.Ok)
 
     def clear_version(self):
-        reply = QMessageBox.question(self, 'Clear', "Are you sure you want to reset your version?", QMessageBox.Yes |
+        reply = QMessageBox.question(self, 'Clear', "Are you sure you want to reset your version?", QMessageBox.Yes | 
                                      QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.version.setText('')
@@ -243,7 +257,19 @@ class DolphinUpdate(QMainWindow):
             self.dolphin_dir.setText(folder)
             self.dolphin_dir_status.setPixmap(QPixmap("res/check.png"))
             self._udc.set_user_path(folder)
-
+            
+    def hide_changelog(self, checked):
+        self._udc.set_hide_changelog(checked)
+        if checked:
+            self.window().resize(500, 250)
+            self.changelog_frame.hide()
+        else:
+            self.window().resize(500, 465)
+            self.changelog_frame.show()
+        
+            
+        return
+        
     def init_user_data(self):
         """initialize the dolphin path"""
         path, version = self._udc.load_user_data()
@@ -259,7 +285,7 @@ class DolphinUpdate(QMainWindow):
         self._udc.set_auto_launch(self.auto_launch_check.isChecked())
         if self.download_thread.isRunning():
             event.ignore()
-            reply = QMessageBox.question(self, 'Exit', "Are you sure to quit?", QMessageBox.Yes |
+            reply = QMessageBox.question(self, 'Exit', "Are you sure to quit?", QMessageBox.Yes | 
                                          QMessageBox.No, QMessageBox.No)
             if reply == QMessageBox.Yes:
                 self.hide()
