@@ -32,7 +32,8 @@ class DolphinCmd:
         parser.add_argument('-c', '--clear-version', dest='clear', action='store_true',
                             help='clear your dolphin version')
         parser.add_argument('-f', '--set-folder', dest='folder', help='set your dolphin directory')
-        parser.add_argument('-d', '--download', dest='download', action='store_true', help='download the latest version and extract to your directory')
+        parser.add_argument('-d', '--download', dest='download', action='store_true',
+                            help='download the latest version and extract to your directory')
         options = parser.parse_args(self.args)
 
         # Return the argument values
