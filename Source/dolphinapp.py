@@ -7,6 +7,7 @@ import urllib.request
 from contextlib import suppress
 
 from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QTimer
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QCheckBox
@@ -191,8 +192,8 @@ class DolphinUpdate(QMainWindow):
             self.version.setPlaceholderText("Installation Status Unknown")
             self.version_status.setPixmap(self.check)
             self._udc.set_user_version(self.version.text())
-            if self.auto_launch_check.isChecked():
-                self.launch_dolphin()
+            if self.auto_launch_check.isChecked() and QApplication.keyboardModifiers() != Qt.ShiftModifier:
+                QTimer.singleShot(1000, self.launch_dolphin)
         else:
             self.version.setPlaceholderText(message)
 
@@ -239,8 +240,8 @@ class DolphinUpdate(QMainWindow):
         self.current.setText(current)
         if self.version.text() == self.current.text():
             self.version_status.setPixmap(self.check)
-            if self.auto_launch_check.isChecked():
-                self.launch_dolphin()
+            if self.auto_launch_check.isChecked() and QApplication.keyboardModifiers() != Qt.ShiftModifier:
+                QTimer.singleShot(1000, self.launch_dolphin)
         else:
             self.version_status.setPixmap(self.cancel)
             if self.auto_launch_check.isChecked() and self.dolphin_dir.text():
