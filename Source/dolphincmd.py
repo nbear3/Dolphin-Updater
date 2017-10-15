@@ -32,7 +32,7 @@ class DolphinCmd:
         parser.add_argument('-c', '--clear-version', dest='clear', action='store_true',
                             help='clear your dolphin version')
         parser.add_argument('-f', '--set-folder', dest='folder', help='set your dolphin directory')
-        parser.add_argument('-d', '--download', dest='download', action='store_true', help='set your dolphin directory')
+        parser.add_argument('-d', '--download', dest='download', action='store_true', help='download the latest version and extract to your directory')
         options = parser.parse_args(self.args)
 
         # Return the argument values
@@ -72,7 +72,7 @@ class DolphinCmd:
 
         file_name = os.path.basename(link)
         zip_file = os.path.join(self.DOWNLOAD_PATH, file_name)
-        to_directory, base_name = os.path.split(self.dir)
+        to_directory, base_name = os.path.split(self.path)
 
         try:
             print('Downloading...')
