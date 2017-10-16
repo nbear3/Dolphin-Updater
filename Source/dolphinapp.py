@@ -21,7 +21,7 @@ from controllers.dolphin_control import get_dolphin_link, get_dolphin_html, get_
 
 class DolphinUpdate(QMainWindow):
 
-    APP_TITLE = 'DolphinUpdate 3.0'
+    APP_TITLE = 'DolphinUpdate 3.1'
     DOWNLOAD_PATH = os.path.join(os.getenv('APPDATA'), 'DolphinUpdate/')
 
     def __init__(self, user_data_control):
