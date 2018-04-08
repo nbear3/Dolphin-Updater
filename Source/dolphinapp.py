@@ -169,8 +169,6 @@ class DolphinUpdate(QMainWindow):
         self.auto_launch_check = QCheckBox(settings_frame)
         self.auto_launch_check.setChecked(self._udc.get_auto_launch())
         settings_form.addRow("Auto Launch?", self.auto_launch_check)
-        settings_form.setContentsMargins(0, 1, 2, 0)
-        self.statusBar().addPermanentWidget(settings_frame)
         
         self.launch_qt_check = QCheckBox(settings_frame)
         self.launch_qt_check.setChecked(self._udc.get_qt())
