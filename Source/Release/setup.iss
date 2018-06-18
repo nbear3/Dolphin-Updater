@@ -16,6 +16,7 @@ OutputBaseFilename=setup
 SetupIconFile=..\res\bunn.ico
 Compression=lzma
 SolidCompression=yes
+PrivilegesRequired=lowest
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

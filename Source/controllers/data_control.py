@@ -33,6 +33,16 @@ class UserDataControl:
         except:
             self.set_auto_launch(False)
             return False
+    
+    def set_qt(self, launch_qt):
+        self._sh['launch_qt'] = launch_qt
+
+    def get_qt(self):
+        try:
+            return self._sh.get('launch_qt', False)
+        except:
+            self.set_qt(False)
+            return False
 
     def set_hide_changelog(self, hide_status):
         self._sh['hide_changelog'] = hide_status

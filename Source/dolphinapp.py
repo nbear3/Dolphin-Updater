@@ -164,23 +164,31 @@ class DolphinUpdate(QMainWindow):
         toolbar.addSeparator()
         toolbar.addAction(launch_dolphin_action)
 
-        auto_launch_frame = QFrame()
-        auto_launch_form = QFormLayout(auto_launch_frame)
-        self.auto_launch_check = QCheckBox(auto_launch_frame)
+        settings_frame = QFrame()
+        settings_form = QFormLayout(settings_frame)
+        self.auto_launch_check = QCheckBox(settings_frame)
         self.auto_launch_check.setChecked(self._udc.get_auto_launch())
-        auto_launch_form.addRow("Auto Launch?", self.auto_launch_check)
-        auto_launch_form.setContentsMargins(0, 1, 2, 0)
-        self.statusBar().addPermanentWidget(auto_launch_frame)
-
+        settings_form.addRow("Auto Launch?", self.auto_launch_check)
+        
+        self.launch_qt_check = QCheckBox(settings_frame)
+        self.launch_qt_check.setChecked(self._udc.get_qt())
+        settings_form.addRow("Launch QT Version?", self.launch_qt_check)
+        settings_form.setContentsMargins(0, 1, 2, 0)
+        self.statusBar().addPermanentWidget(settings_frame)
+    
     def launch_dolphin(self):
         dolphin_dir = self.dolphin_dir.text()
         if not dolphin_dir:
             self.show_warning('Please select a dolphin folder.')
             return
 
-        dolphin_path = os.path.join(dolphin_dir, 'Dolphin.exe')
+        if (self.launch_qt_check.isChecked() == False):
+          dolphinexe = 'Dolphin.exe'
+        else:
+          dolphinexe = 'DolphinQt2.exe'
+        dolphin_path = os.path.join(dolphin_dir, dolphinexe)
         if not os.path.isfile(dolphin_path):
-            self.show_warning('Could not find "Dolphin.exe".')
+            self.show_warning('Could not find "' + dolphinexe + '".')
             return
 
         subprocess.Popen(dolphin_path, cwd=dolphin_dir)
@@ -278,6 +286,7 @@ class DolphinUpdate(QMainWindow):
     # PyQt closeEvent called on exit
     def closeEvent(self, event):
         self._udc.set_auto_launch(self.auto_launch_check.isChecked())
+        self._udc.set_qt(self.launch_qt_check.isChecked())
         if self.download_thread.isRunning():
             event.ignore()
             reply = QMessageBox.question(self, 'Exit', "Are you sure you want to quit?", QMessageBox.Yes |
